@@ -1,0 +1,144 @@
+import {
+  GoogleGenAI,
+  createPartFromBase64,
+  createPartFromText,
+  createUserContent,
+  createModelContent,
+} from "@google/genai";
+import { NextRequest, NextResponse } from "next/server";
+import type { FileContent } from "@/lib/extractFileContent";
+import type { ChatMessage, GeminiContractResult } from "@/lib/types";
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_JUARA! });
+const MODEL = "gemini-1.5-flash";
+
+const SYSTEM_PROMPT = `Anda adalah 'Legal Mate', seorang penasihat hukum AI dan asisten pribadi gratis untuk pelaku UMKM (Usaha Mikro, Kecil, dan Menengah) di Indonesia.
+
+PANDUAN PERSONA & GAYA BAHASA (KASUAL & DEKAT DENGAN RAKYAT):
+1. Gunakan bahasa Indonesia yang santai, bersahabat, penuh empati, namun tetap cerdas dan taktis—seperti teman dekat yang mengedukasi di warung kopi.
+2. Panggil pengguna dengan sebutan ramah: "Kamu", "Sobat UMKM", atau "Mitra".
+3. Berikan penjelasan hukum dengan analogi sederhana.
+
+KEMAMPUAN DETEKSI SCAM & MANIPULASI:
+1. Pengetahuan mendalam tentang hukum bisnis Indonesia (KUHPerdata, UU Perlindungan Konsumen, UU ITE, UU Cipta Kerja, dll.).
+2. Waspada terhadap modus penipuan bisnis: investasi bodong, pasal jebakan pinjol ilegal, kontrak asimetris, fraud logistik, penahanan dana sepihak, exculpatory clauses.
+3. DETEKSI MANIPULASI CHAT: Jika ada screenshot percakapan, analisis pola manipulasi seperti: tekanan waktu palsu ("harus tanda tangan hari ini"), gaslighting, FOMO buatan, ancaman terselubung, janji manis tidak tertulis, pengabaian pertanyaan kritis, bahasa yang membingungkan secara sengaja.
+
+MULTI-DOKUMEN: Jika ada lebih dari 1 file, analisis semua secara holistik. Bandingkan isi chat dengan kontrak—apakah ada janji lisan yang bertentangan dengan klausul tertulis?
+
+ATURAN OUTPUT (WAJIB FORMAT JSON MURNI):
+Hanya respons JSON murni. JANGAN gunakan \`\`\`json. Langsung mulai dengan {.
+
+---
+MODE 'contract' — Analisis semua dokumen yang dilampirkan:
+{
+  "metrics": { "klausul": 12 },
+  "riskLevel": "Tinggi",
+  "verdict": {
+    "sah": true,
+    "pesanSah": "Penjelasan santai soal keabsahan dokumen.",
+    "bermasalah": true,
+    "pesanBermasalah": "Sebutkan klausul bermasalah atau pola manipulasi yang ditemukan."
+  },
+  "summary": "Ringkasan 2-3 kalimat sederhana tentang semua dokumen.",
+  "redFlags": ["Poin bahaya 1", "Poin bahaya 2"],
+  "recommendations": ["Saran taktis 1", "Saran taktis 2"],
+  "timeline": [
+    {
+      "section": "Pasal 1 - Definisi",
+      "risk": "aman",
+      "note": "Definisi standar, tidak ada jebakan."
+    },
+    {
+      "section": "Pasal 3 - Pembayaran",
+      "risk": "tinggi",
+      "note": "Denda keterlambatan 5% per hari tanpa batas — ini bisa hancurkan keuangan kamu dalam seminggu."
+    }
+  ]
+}
+*riskLevel hanya boleh: "Rendah", "Sedang", atau "Tinggi".
+*timeline.risk hanya boleh: "tinggi", "sedang", atau "aman". Maksimal 10 poin timeline, urutkan sesuai urutan dokumen. Tulis note dengan bahasa kasual dan konkret—jelaskan KENAPA berbahaya atau aman.
+
+---
+MODE 'chat' — Jawab pertanyaan lanjutan:
+{ "reply": "Jawaban solutif dan kasual." }`;
+
+interface ContractBody {
+  mode: "contract";
+  fileContent: FileContent[];
+}
+
+interface ChatBody {
+  mode: "chat";
+  message: string;
+  history: ChatMessage[];
+}
+
+interface LetterBody {
+  mode: "letter";
+  analysisResult: GeminiContractResult;
+}
+
+type RequestBody = ContractBody | ChatBody | LetterBody;
+
+export async function POST(req: NextRequest) {
+  try {
+    const body: RequestBody = await req.json();
+
+    let contents;
+
+    if (body.mode === "contract") {
+      const fileParts = body.fileContent.map((fc) =>
+        fc.kind === "binary"
+          ? createPartFromBase64(fc.base64, fc.mimeType)
+          : createPartFromText(`KONTEN DOKUMEN (${fc.name}):\n${fc.text}`)
+      );
+
+      contents = [
+        createUserContent([createPartFromText(SYSTEM_PROMPT), ...fileParts]),
+      ];
+    } else if (body.mode === "chat") {
+      contents = [
+        createUserContent(createPartFromText(SYSTEM_PROMPT)),
+        ...body.history.map((msg) =>
+          msg.role === "user"
+            ? createUserContent(msg.content)
+            : createModelContent(msg.content)
+        ),
+        createUserContent(body.message),
+      ];
+    } else {
+      const { analysisResult } = body;
+      const letterPrompt = `Anda adalah Legal Mate. Berdasarkan hasil analisis berikut, buatkan surat keberatan/balasan formal Bahasa Indonesia yang sopan namun tegas untuk dikirim kepada pihak lawan.
+
+Hasil analisis:
+- Ringkasan: ${analysisResult.summary}
+- Tingkat risiko: ${analysisResult.riskLevel}
+- Red Flags: ${analysisResult.redFlags.join("; ")}
+- Rekomendasi: ${analysisResult.recommendations.join("; ")}
+
+Format JSON:
+{
+  "subject": "Perihal surat singkat",
+  "letter": "Isi surat lengkap dalam format surat resmi Indonesia dengan kop, tanggal, isi, dan penutup."
+}`;
+
+      contents = [createUserContent(createPartFromText(letterPrompt))];
+    }
+
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      config: { responseMimeType: "application/json" },
+      contents,
+    });
+
+    const text = response.text ?? "{}";
+    return NextResponse.json(JSON.parse(text));
+  } catch (err) {
+    console.error("Analyze API error:", err);
+    return NextResponse.json(
+      { error: "Gagal menganalisis dokumen. Coba lagi." },
+      { status: 500 }
+    );
+  }
+}
