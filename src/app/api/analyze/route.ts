@@ -1,15 +1,16 @@
 import {
-  GoogleGenAI,
+  type Content,
+  createModelContent,
   createPartFromBase64,
   createPartFromText,
   createUserContent,
-  createModelContent,
+  GoogleGenAI,
 } from "@google/genai";
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import type { FileContent } from "@/lib/extractFileContent";
 import type { ChatMessage, GeminiContractResult } from "@/lib/types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const MODEL = "gemini-3.5-flash";
 
 const SYSTEM_PROMPT = `Anda adalah 'Sada', seorang penasihat hukum AI dan asisten pribadi gratis untuk pelaku UMKM (Usaha Mikro, Kecil, dan Menengah) di Indonesia.
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let contents;
+    let contents: Content[];
 
     if (body.mode === "contract") {
       const fileParts = body.fileContent.map((fc) =>
