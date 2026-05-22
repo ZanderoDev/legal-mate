@@ -36,7 +36,8 @@ To set up and run Legal Mate locally, follow these steps:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/hiyokun-d/legal-mate cd legal-mate
+    git clone https://github.com/hiyokun-d/legal-mate
+    cd legal-mate
     ```
 
 2.  **Install dependencies:**
