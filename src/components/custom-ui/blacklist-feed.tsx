@@ -4,6 +4,7 @@ import type { BlacklistReport } from "@/app/api/blacklist/route";
 import { AlertTriangle, ChevronUp, Loader2, MapPin, Phone, Search, Shield, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { securePatch } from "@/lib/secureRequest";
 
 const card = "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-black/20";
 
@@ -19,7 +20,7 @@ const jenisColor: Record<string, string> = {
 };
 
 const scamBarColor = (s: number) =>
-  s >= 70 ? "bg-gradient-to-r from-red-500 to-red-600" : s >= 40 ? "bg-gradient-to-r from-amber-400 to-orange-500" : "bg-gradient-to-r from-emerald-500 to-teal-500";
+  s >= 70 ? "bg-gradient-to-r from-red-500 to-red-600" : s >= 40 ? "bg-gradient-to-r from-amber-400 to-orange-500" : "bg-gradient-to-r from-amber-500 to-amber-600";
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -66,11 +67,7 @@ export default function BlacklistFeed({ refreshKey }: { refreshKey?: number }) {
       prev.map((r) => (r.id === id ? { ...r, upvotes: r.upvotes + 1 } : r))
     );
     try {
-      await fetch("/api/blacklist", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
+      await securePatch("/api/blacklist", { id });
     } catch {
       // silently fail, UI already updated
     }
@@ -96,7 +93,7 @@ export default function BlacklistFeed({ refreshKey }: { refreshKey?: number }) {
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
           <input
-            className="w-full pl-8 pr-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-400 transition-all"
+            className="w-full pl-8 pr-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400 transition-all"
             placeholder="Cari nama perusahaan / modus..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -105,7 +102,7 @@ export default function BlacklistFeed({ refreshKey }: { refreshKey?: number }) {
         </div>
         <button
           onClick={handleSearch}
-          className="px-4 py-2.5 text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl transition-all active:scale-95"
+          className="px-4 py-2.5 text-sm font-semibold bg-amber-500 hover:bg-amber-400 text-white rounded-xl transition-all active:scale-95"
         >
           Cari
         </button>
@@ -114,7 +111,7 @@ export default function BlacklistFeed({ refreshKey }: { refreshKey?: number }) {
       {/* List */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="size-5 text-emerald-500 animate-spin" />
+          <Loader2 className="size-5 text-amber-500 animate-spin" />
         </div>
       ) : reports.length === 0 ? (
         <div className={`${card} p-8 text-center space-y-2`}>
@@ -150,8 +147,8 @@ export default function BlacklistFeed({ refreshKey }: { refreshKey?: number }) {
                   disabled={upvoted.has(report.id)}
                   className={`flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl border transition-all active:scale-95 ${
                     upvoted.has(report.id)
-                      ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400"
-                      : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-emerald-300 hover:text-emerald-600"
+                      ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-400"
+                      : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-amber-300 hover:text-amber-600"
                   }`}
                 >
                   <ChevronUp className="size-3.5" />

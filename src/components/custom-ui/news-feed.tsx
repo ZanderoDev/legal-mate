@@ -1,12 +1,12 @@
 "use client";
 
+import type { NewsItem } from "@/app/api/news/route";
 import { ExternalLink, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { NewsItem } from "@/app/api/news/route";
 
 function timeAgo(dateStr: string): string {
   const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return "Baru saja";
+  if (isNaN(date.getTime())) return "Baru saja";
   const diff = Math.floor((Date.now() - date.getTime()) / 1000);
   if (diff < 60) return `${diff}d lalu`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m lalu`;
@@ -16,39 +16,13 @@ function timeAgo(dateStr: string): string {
 
 function riskTag(title: string): { label: string; color: string } {
   const t = title.toLowerCase();
-  if (
-    t.includes("penipuan") ||
-    t.includes("scam") ||
-    t.includes("tipu") ||
-    t.includes("modus")
-  )
-    return {
-      label: "Penipuan",
-      color: "bg-red-500/20 text-red-300 border-red-500/30",
-    };
-  if (
-    t.includes("investasi") ||
-    t.includes("bodong") ||
-    t.includes("palsu") ||
-    t.includes("ilegal")
-  )
-    return {
-      label: "Investasi Bodong",
-      color: "bg-orange-500/20 text-orange-300 border-orange-500/30",
-    };
-  if (
-    t.includes("kontrak") ||
-    t.includes("perjanjian") ||
-    t.includes("klausul")
-  )
-    return {
-      label: "Kontrak",
-      color: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-    };
-  return {
-    label: "Waspada",
-    color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-  };
+  if (t.includes("penipuan") || t.includes("scam") || t.includes("tipu") || t.includes("modus"))
+    return { label: "Penipuan", color: "bg-red-500/20 text-red-300 border-red-500/30" };
+  if (t.includes("investasi") || t.includes("bodong") || t.includes("palsu") || t.includes("ilegal"))
+    return { label: "Investasi Bodong", color: "bg-orange-500/20 text-orange-300 border-orange-500/30" };
+  if (t.includes("kontrak") || t.includes("perjanjian") || t.includes("klausul"))
+    return { label: "Kontrak", color: "bg-amber-500/20 text-amber-300 border-amber-500/30" };
+  return { label: "Waspada", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" };
 }
 
 export default function NewsFeed() {
@@ -66,20 +40,15 @@ export default function NewsFeed() {
         setLastUpdate(new Date());
         setElapsed(0);
       }
-    } catch {
-    } finally {
-      setLoading(false);
-    }
+    } catch {}
+    finally { setLoading(false); }
   };
 
   useEffect(() => {
     load();
     const refresh = setInterval(load, 60_000);
     const tick = setInterval(() => setElapsed((e) => e + 1), 1000);
-    return () => {
-      clearInterval(refresh);
-      clearInterval(tick);
-    };
+    return () => { clearInterval(refresh); clearInterval(tick); };
   }, []);
 
   const displayed = items.slice(0, 9);
@@ -94,9 +63,7 @@ export default function NewsFeed() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
             </span>
-            <h2 className="text-2xl font-bold text-white">
-              Penipuan &amp; Scam Terkini
-            </h2>
+            <h2 className="text-2xl font-bold text-white">Penipuan &amp; Scam Terkini</h2>
           </div>
           <p className="text-slate-400 text-sm pl-6">
             Berita nyata dari media Indonesia — diperbarui otomatis setiap menit
@@ -106,14 +73,13 @@ export default function NewsFeed() {
         <div className="flex items-center gap-3">
           {lastUpdate && (
             <span className="text-xs text-slate-500 tabular-nums">
-              {elapsed < 60 ? `${elapsed}d` : `${Math.floor(elapsed / 60)}m`}{" "}
-              lalu
+              {elapsed < 60 ? `${elapsed}d` : `${Math.floor(elapsed / 60)}m`} lalu
             </span>
           )}
           <button
             onClick={() => load(true)}
             disabled={loading}
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg px-3 py-1.5 transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white border border-slate-700/50 hover:border-amber-500/30 rounded-lg px-3 py-1.5 transition-all disabled:opacity-50"
           >
             <RefreshCw className={`size-3 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -145,7 +111,7 @@ export default function NewsFeed() {
                 href={item.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex flex-col justify-between gap-3 p-5 rounded-2xl bg-slate-800/60 border border-slate-700/50 hover:border-slate-500 hover:bg-slate-800 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20"
+                className="group flex flex-col justify-between gap-3 p-5 rounded-2xl bg-white/5 dark:bg-amber-900/5 border border-slate-700/40 hover:border-amber-500/30 hover:bg-white/10 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
@@ -175,8 +141,7 @@ export default function NewsFeed() {
       )}
 
       <p className="text-center text-xs text-slate-600">
-        Sumber: Google News Indonesia · Data diambil langsung dari media
-        terpercaya
+        Sumber: Google News Indonesia · Data diambil langsung dari media terpercaya
       </p>
     </section>
   );
