@@ -103,7 +103,11 @@ type RequestBody = ContractBody | ChatBody | LetterBody;
 export async function POST(req: NextRequest) {
   // Security: validate one-time token + origin
   const { valid, error } = validateToken(req);
-  if (!valid) return NextResponse.json({ error: error ?? "Unauthorized." }, { status: 401 });
+  if (!valid)
+    return NextResponse.json(
+      { error: error ?? "Unauthorized." },
+      { status: 401 },
+    );
 
   try {
     const body: RequestBody = await req.json();
